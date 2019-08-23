@@ -86,7 +86,12 @@ def format_record(record):
     )
 
     # Humanise output and conform to Exceptions
-    record["message"] = str(record.pop("msg"))
+    msg = record.pop("msg")
+    try:
+        msg = str(msg)
+    except UnicodeEncodeError:
+        msg = msg.encode("utf-8")
+    record["message"] = msg
 
     if os.getenv("PYBLISH_SAFE"):
         schema.validate(record, "record")
@@ -96,7 +101,12 @@ def format_record(record):
 
 def format_error(error):
     """Serialise exception"""
-    formatted = {"message": str(error)}
+    try:
+        error = str(error)
+    except UnicodeEncodeError:
+        error = error.args[0].encode("utf-8")
+
+    formatted = {"message": error}
 
     if hasattr(error, "traceback"):
         fname, line_no, func, exc = error.traceback
