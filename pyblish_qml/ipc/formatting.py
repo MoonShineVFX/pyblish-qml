@@ -102,11 +102,12 @@ def format_record(record):
 def format_error(error):
     """Serialise exception"""
     try:
-        error = str(error)
+        error_message = str(error)
     except UnicodeEncodeError:
-        error = error.args[0].encode("utf-8")
+        # (TODO) Requires to handling different type of errors
+        error_message = error.args[0].encode("utf-8")
 
-    formatted = {"message": error}
+    formatted = {"message": error_message}
 
     if hasattr(error, "traceback"):
         fname, line_no, func, exc = error.traceback
