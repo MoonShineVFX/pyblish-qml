@@ -5,6 +5,7 @@ import inspect
 import traceback
 
 from . import schema
+from ..vendor import six
 
 import pyblish.lib
 import pyblish.plugin
@@ -103,9 +104,16 @@ def format_error(error):
     """Serialise exception"""
     try:
         error_message = str(error)
+
     except UnicodeEncodeError:
-        # (TODO) Requires to handling different type of errors
-        error_message = error.args[0].encode("utf-8")
+        encoded_args = list()
+
+        for arg in error.args:
+            if isinstance(arg, six.string_types):
+                arg = arg.encode("utf-8")
+            encoded_args.append(arg)
+
+        error_message = str(error.__class__(*encoded_args))
 
     formatted = {"message": error_message}
 
