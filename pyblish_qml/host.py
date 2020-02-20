@@ -237,7 +237,8 @@ def install_host(use_threaded_wrapper):
 
     """
 
-    for install in (_install_maya,
+    for install in (_install_max,
+                    _install_maya,
                     _install_houdini,
                     _install_nuke,
                     _install_nukeassist,
@@ -518,6 +519,40 @@ def _common_setup(host_name, threaded_wrapper, use_threaded_wrapper):
 
     _set_host_label(host_name)
 
+def _install_max(use_threaded_wrapper):    
+    from .vendor.Qt import QtCore
+    max_to_qml = queue.Queue()
+    
+    class PYBLISH_EVENT(QtCore.QEvent):
+        EVENT_TYPE = QtCore.QEvent.Type(QtCore.QEvent.registerEventType())
+
+        def __init__(self, fn, *args, **kwargs):
+            QtCore.QEvent.__init__(self, PYBLISH_EVENT.EVENT_TYPE)
+            self.fn = fn
+            self.args = args
+            self.kwargs = kwargs
+       
+    class Reciver(QtCore.QObject):
+        def event(self, event):
+            try:
+                # print(event.fn.__name__, event.args, event.kwargs)
+                result = event.fn(*event.args, **event.kwargs)
+                max_to_qml.put(result)
+                return True
+            except:
+                return super(Reciver, self).event(event)
+    
+    qml_command_handler = Reciver()
+    
+    # class _GCP(object):
+    #     _gcp = [qml_command_handler]
+
+    def threaded_wrapper(func, *args, **kwargs):
+        QtCore.QCoreApplication.postEvent(qml_command_handler, PYBLISH_EVENT(func, *args, **kwargs))
+        return max_to_qml.get()
+    
+    sys.stdout.write("Setting up Pyblish QML in Max\n")
+    _common_setup("Max", threaded_wrapper, use_threaded_wrapper)
 
 def _install_maya(use_threaded_wrapper):
     """Helper function to Autodesk Maya support"""
