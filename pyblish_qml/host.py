@@ -279,6 +279,14 @@ class QtHost(Host):
         from .vendor.Qt import QtWidgets, QtCore, QtGui
 
         self.app = QtWidgets.QApplication.instance()
+        
+        if type(self.app) == QtCore.QCoreApplication:
+            try:
+                import shiboken2
+                self.app = app = shiboken2.wrapInstance(shiboken2.getCppPointer(QtWidgets.QApplication.instance())[0], QtWidgets.QApplication)
+            except ImportError:
+                pass
+        # Soultion for get Qapp in 3dsMax 2020
         self.window = None
 
         self._state = {
