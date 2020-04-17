@@ -5,6 +5,7 @@ import inspect
 import traceback
 
 from . import schema
+from ..vendor import six
 
 import pyblish.lib
 import pyblish.plugin
@@ -86,7 +87,12 @@ def format_record(record):
     )
 
     # Humanise output and conform to Exceptions
-    record["message"] = str(record.pop("msg"))
+    msg = record.pop("msg")
+    try:
+        msg = str(msg)
+    except UnicodeEncodeError:
+        msg = msg.encode("utf-8")
+    record["message"] = msg
 
     if os.getenv("PYBLISH_SAFE"):
         schema.validate(record, "record")
@@ -96,7 +102,20 @@ def format_record(record):
 
 def format_error(error):
     """Serialise exception"""
-    formatted = {"message": str(error)}
+    try:
+        error_message = str(error)
+
+    except UnicodeEncodeError:
+        encoded_args = list()
+
+        for arg in error.args:
+            if isinstance(arg, six.string_types):
+                arg = arg.encode("utf-8")
+            encoded_args.append(arg)
+
+        error_message = str(error.__class__(*encoded_args))
+
+    formatted = {"message": error_message}
 
     if hasattr(error, "traceback"):
         fname, line_no, func, exc = error.traceback
